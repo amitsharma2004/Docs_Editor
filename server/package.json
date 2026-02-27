@@ -10,8 +10,7 @@
     "migrate:slugs": "ts-node src/scripts/add-slugs-migration.ts",
     "test": "jest --config jest.config.ts",
     "test:coverage": "jest --config jest.config.ts --coverage",
-    "test:e2e": "playwright test --config playwright.config.ts",
-    "postinstall": "npm run build"
+    "test:e2e": "playwright test --config playwright.config.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

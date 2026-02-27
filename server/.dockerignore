@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.env
+.env.local
+.env.production
+dist
+coverage
+logs
+*.log
+.DS_Store
+.vscode
+.idea
+test-results
+playwright-report

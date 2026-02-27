@@ -4,7 +4,7 @@ import { getDocumentById, applyOperationToDocument } from '../document/document.
 import { transformOperation, applyOperation, Operation } from './ot-engine';
 import { Op } from './op.model';
 import { getRedisClient } from '../../config/redis';
-import { writeLog } from '../../utils/logger';
+import logger from '../../utils/logger';
 import { Types } from 'mongoose';
 
 const REDIS_OP_TTL = 30; // seconds
@@ -21,14 +21,19 @@ const bufferOp = async (docId: string, op: Operation): Promise<void> => {
 
 /**
  * Get buffered ops from Redis for a document since a given revision.
+ * Returns all ops that were applied AFTER the given revision.
  */
 const getBufferedOps = async (docId: string, sinceRevision: number): Promise<Operation[]> => {
   const redis = getRedisClient();
   const key = `ops:${docId}`;
   const raw = await redis.lrange(key, 0, -1);
-  return raw
+  const ops = raw
     .map((r) => JSON.parse(r) as Operation)
-    .filter((op) => op.revision > sinceRevision);
+    .filter((op) => op.revision > sinceRevision)
+    .sort((a, b) => a.revision - b.revision); // Ensure sorted by revision
+  
+  logger.info(`Retrieved ${ops.length} buffered ops for doc ${docId} since revision ${sinceRevision}`);
+  return ops;
 };
 
 /**
@@ -50,7 +55,7 @@ const flushOpsToMongo = async (docId: string): Promise<void> => {
 
   await Op.insertMany(docs, { ordered: false });
   await redis.del(key);
-  writeLog('info', `Flushed ${docs.length} ops to MongoDB for doc ${docId}`);
+  logger.info(`Flushed ${docs.length} ops to MongoDB for doc ${docId}`);
 };
 
 /** Track presence per document room: Map<docId, Map<socketId, userInfo>> */
@@ -61,7 +66,7 @@ const presenceMap = new Map<string, Map<string, { userId: string; name: string; 
  */
 export const registerOTGateway = (io: Server): void => {
   io.on('connection', (socket: Socket) => {
-    writeLog('info', `Socket connected: ${socket.id}`);
+    logger.info(`Socket connected: ${socket.id}`);
 
     // ── JOIN DOCUMENT ──────────────────────────────────────────────────────
     socket.on('join-document', async ({ docId, token }: { docId: string; token: string }) => {
@@ -87,7 +92,7 @@ export const registerOTGateway = (io: Server): void => {
           title: doc.title,
         });
 
-        writeLog('info', `User ${payload.userId} joined document ${docId}`);
+        logger.info(`User ${payload.userId} joined document ${docId}`);
       } catch (err) {
         socket.emit('error', { message: (err as Error).message });
       }
@@ -109,16 +114,20 @@ export const registerOTGateway = (io: Server): void => {
         // Get pending ops since client's revision (from Redis buffer)
         const pendingOps = await getBufferedOps(docId, revision);
 
+        logger.info(`Processing op from client at revision ${revision}, doc at ${doc.revision}, ${pendingOps.length} pending ops`);
+
         // Transform the client op against pending server ops
-        const { transformedOp, newRevision } = transformOperation(clientOp, pendingOps);
+        const { transformedOp } = transformOperation(clientOp, pendingOps);
 
         // Apply transformed op to document content
         const newContent = applyOperation(doc.content, transformedOp);
 
         // Atomically update document with CAS on revision
+        // Use the CURRENT document revision, not the transformed revision
         const updatedDoc = await applyOperationToDocument(docId, newContent, doc.revision);
         if (!updatedDoc) {
           // Revision mismatch — retry by rejecting and asking client to re-sync
+          logger.warn(`Revision conflict for doc ${docId}: expected ${doc.revision}`);
           socket.emit('operation-rejected', { docId, reason: 'revision_conflict' });
           return;
         }
@@ -145,6 +154,7 @@ export const registerOTGateway = (io: Server): void => {
         });
 
       } catch (err) {
+        logger.error(`Error processing operation: ${(err as Error).message}`);
         socket.emit('error', { message: (err as Error).message });
       }
     });
@@ -183,7 +193,7 @@ export const registerOTGateway = (io: Server): void => {
           io.to(room).emit('presence-update', { users });
         }
       }
-      writeLog('info', `Socket disconnected: ${socket.id}`);
+      logger.info(`Socket disconnected: ${socket.id}`);
     });
   });
 };

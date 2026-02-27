@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { User } from '../user/user.model';
 import { findUserByEmail } from '../user/user.service';
 import { getRedisClient } from '../../config/redis';
-import { writeLog } from '../../utils/logger';
+import logger from '../../utils/logger';
 
 const SALT_ROUNDS = 12;
 
@@ -26,7 +26,7 @@ export const registerUser = async (name: string, email: string, password: string
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   const user = await User.create({ name, email, passwordHash });
-  writeLog('info', `User registered: ${user._id}`);
+  logger.info('info', `User registered: ${user._id}`);
   return generateTokens(user._id.toString(), user.email);
 };
 
@@ -40,7 +40,7 @@ export const loginUser = async (email: string, password: string): Promise<AuthTo
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) throw new Error('Invalid credentials');
 
-  writeLog('info', `User logged in: ${user._id}`);
+  logger.info('info', `User logged in: ${user._id}`);
   return generateTokens(user._id.toString(), user.email);
 };
 

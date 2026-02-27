@@ -7,9 +7,11 @@
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
+    "migrate:slugs": "ts-node src/scripts/add-slugs-migration.ts",
     "test": "jest --config jest.config.ts",
     "test:coverage": "jest --config jest.config.ts --coverage",
-    "test:e2e": "playwright test --config playwright.config.ts"
+    "test:e2e": "playwright test --config playwright.config.ts",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -21,7 +23,8 @@
     "mongoose": "^8.0.3",
     "quill-delta": "^5.1.0",
     "socket.io": "^4.6.1",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
@@ -33,6 +36,7 @@
     "@types/node": "^20.10.0",
     "@types/supertest": "^7.2.0",
     "@types/uuid": "^9.0.7",
+    "@types/winston": "^2.4.4",
     "ioredis-mock": "^8.13.1",
     "jest": "^30.2.0",
     "mongodb-memory-server": "^11.0.1",

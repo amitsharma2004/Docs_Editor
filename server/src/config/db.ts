@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { writeLog } from '../utils/logger';
+import logger from '../utils/logger';
 
 /**
  * Connect to MongoDB with retry logic.
@@ -7,13 +7,13 @@ import { writeLog } from '../utils/logger';
  */
 export const connectDB = async (retries = 5): Promise<void> => {
   try {
-    const uri = process.env.MONGO_URI as string;
-    await mongoose.connect(uri);
-    writeLog('info', 'MongoDB connected successfully');
+    const uri = process.env.MONGO_URI || "";
+    const connection = await mongoose.connect(uri);
+    logger.info(`MongoDB connected: ${connection.connection.host}`);
   } catch (error) {
-    writeLog('error', `MongoDB connection failed: ${(error as Error).message}`);
+    logger.error(`MongoDB connection failed: ${(error as Error).message}`);
     if (retries > 0) {
-      writeLog('info', `Retrying MongoDB connection... (${retries} attempts left)`);
+      logger.info(`Retrying MongoDB connection... (${retries} attempts left)`);
       await new Promise((res) => setTimeout(res, 5000));
       return connectDB(retries - 1);
     }

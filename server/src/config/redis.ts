@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { writeLog } from '../utils/logger';
+import logger from '../utils/logger';
 
 let redisClient: Redis;
 
@@ -16,8 +16,8 @@ export const getRedisClient = (): Redis => {
       },
     });
 
-    redisClient.on('connect', () => writeLog('info', 'Redis connected'));
-    redisClient.on('error', (err) => writeLog('error', `Redis error: ${err.message}`));
+    redisClient.on('connect', () => logger.info('Redis connected'));
+    redisClient.on('error', (err) => logger.error(`Redis error: ${err.message}`));
   }
   return redisClient;
 };

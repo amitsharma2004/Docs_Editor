@@ -35,7 +35,12 @@ export const useOTSocket = ({
   const [serverRevision, setServerRevision] = useState(0);
 
   useEffect(() => {
-    const socket = io('/', { transports: ['websocket'], autoConnect: true });
+    const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const socket = io(SOCKET_URL, { 
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+      withCredentials: true,
+    });
     socketRef.current = socket;
 
     socket.on('connect', () => {

@@ -157,10 +157,13 @@ export const applyOperation = (currentContent: string, op: QuillDelta): string =
     // Compose: currentDelta ∘ opDelta → new document state
     const composed = currentDelta.compose(opDelta);
 
-    return JSON.stringify(composed);
-  } catch {
+    // Convert to plain object before stringifying
+    const result = { ops: composed.ops };
+    return JSON.stringify(result);
+  } catch (err) {
     // On any parse/compose error, treat op as the full new document state
-    return JSON.stringify(new Delta(op.ops as ConstructorParameters<typeof Delta>[0]));
+    const result = { ops: op.ops };
+    return JSON.stringify(result);
   }
 };
 

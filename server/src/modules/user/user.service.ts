@@ -8,6 +8,13 @@ export const findUserByEmail = async (email: string): Promise<IUser | null> => {
 };
 
 /**
+ * Get user by email (alias for findUserByEmail)
+ */
+export const getUserByEmail = async (email: string): Promise<IUser | null> => {
+  return findUserByEmail(email);
+};
+
+/**
  * Find a user by their MongoDB ObjectId.
  */
 export const findUserById = async (id: string): Promise<IUser | null> => {

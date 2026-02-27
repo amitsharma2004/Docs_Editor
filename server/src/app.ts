@@ -9,10 +9,25 @@ import { registerOTGateway } from './modules/ot/ot-gateway';
 import authRoutes from './routes/auth.routes';
 import documentRoutes from './routes/document.routes';
 import userRoutes from './routes/user.routes';
-import { writeLog } from './utils/logger';
+import logger from './utils/logger';
 
 const app = express();
 const httpServer = createServer(app);
+
+// Initialize database connections
+const initializeConnections = async () => {
+  try {
+    await connectDB();
+    await getRedisClient().connect();
+    logger.info('All database connections established');
+  } catch (error) {
+    logger.error(`Failed to initialize connections: ${(error as Error).message}`);
+    process.exit(1);
+  }
+};
+
+initializeConnections();
+
 
 // ── Socket.io Setup ────────────────────────────────────────────────────────
 const io = new SocketIOServer(httpServer, {
@@ -40,18 +55,9 @@ registerOTGateway(io);
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT || '5000', 10);
-
-const bootstrap = async () => {
-  await connectDB();
-  await getRedisClient().connect();
-  httpServer.listen(PORT, () => {
-    writeLog('info', `Server running on port ${PORT}`);
-  });
-};
-
-bootstrap().catch((err) => {
-  writeLog('error', `Bootstrap failed: ${err.message}`);
-  process.exit(1);
+httpServer.listen(PORT, () => {
+  logger.info(`Server is running on port: ${PORT}`);
 });
+
 
 export { app, io };

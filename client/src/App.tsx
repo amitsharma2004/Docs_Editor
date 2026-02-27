@@ -24,6 +24,7 @@ const AppRoutes = () => (
     <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
     <Route path="/" element={<ProtectedRoute><DocumentList /></ProtectedRoute>} />
     <Route path="/document/:docId" element={<ProtectedRoute><Editor /></ProtectedRoute>} />
+    <Route path="/doc/:slug" element={<ProtectedRoute><Editor /></ProtectedRoute>} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );

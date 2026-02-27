@@ -1,24 +1,43 @@
-import fs from 'fs';
+import winston from 'winston';
 import path from 'path';
 
-const LOG_DIR = '/mnt/efs/spaces/f331ac0b-1063-4944-adae-e86c81b0f113/79e6fbc1-e801-4723-b17a-59a979e7d3ee/logs';
+const LOG_DIR = path.join(process.cwd(), 'logs');
 
-if (!fs.existsSync(LOG_DIR)) {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
-}
+// Custom format for colorized console output
+const consoleFormat = winston.format.combine(
+  winston.format.colorize({ all: true }),
+  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  winston.format.printf(({ timestamp, level, message, ...meta }) => {
+    const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
+    return `[${timestamp}] ${level}: ${message}${metaStr}`;
+  })
+);
 
-const logFile = path.join(LOG_DIR, 'server.log');
+// File format (JSON for easy parsing)
+const fileFormat = winston.format.combine(
+  winston.format.timestamp(),
+  winston.format.json()
+);
 
-/**
- * Write a JSON-formatted log entry.
- */
-export const writeLog = (level: 'info' | 'error' | 'warn', message: string, meta?: Record<string, unknown>): void => {
-  const entry = JSON.stringify({
-    timestamp: new Date().toISOString(),
-    level,
-    message,
-    ...(meta && { meta }),
-  });
-  fs.appendFileSync(logFile, entry + '\n');
-  console.log(entry);
-};
+// Create Winston logger
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  transports: [
+    // Colorized console output
+    new winston.transports.Console({
+      format: consoleFormat,
+    }),
+    // JSON file output
+    new winston.transports.File({
+      filename: path.join(LOG_DIR, 'error.log'),
+      level: 'error',
+      format: fileFormat,
+    }),
+    new winston.transports.File({
+      filename: path.join(LOG_DIR, 'combined.log'),
+      format: fileFormat,
+    }),
+  ],
+});
+
+export default logger;

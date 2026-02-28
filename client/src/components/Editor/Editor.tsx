@@ -23,7 +23,6 @@ const Editor: React.FC = () => {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState('Untitled Document');
-  const [slug, setSlug] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [connStatus, setConnStatus] = useState<'connected' | 'disconnected'>('disconnected');
@@ -45,12 +44,10 @@ const Editor: React.FC = () => {
     api.get(`/documents/${docId}`).then((res) => {
       setTitle(res.data.title);
       if (res.data.slug) {
-        setSlug(res.data.slug);
         setShareLink(`${window.location.origin}/doc/${res.data.slug}`);
       } else {
         // If no slug exists, generate one by updating the title
         api.patch(`/documents/${docId}`, { title: res.data.title }).then((updateRes) => {
-          setSlug(updateRes.data.slug);
           setShareLink(`${window.location.origin}/doc/${updateRes.data.slug}`);
         });
       }
@@ -237,7 +234,6 @@ const Editor: React.FC = () => {
     setEditingTitle(false);
     try {
       const res = await api.patch(`/documents/${docId}`, { title });
-      setSlug(res.data.slug);
       setShareLink(`${window.location.origin}/doc/${res.data.slug}`);
     } catch { /* ignore title update errors */ }
   };
